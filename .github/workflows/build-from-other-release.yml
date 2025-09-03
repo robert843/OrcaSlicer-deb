@@ -2,7 +2,7 @@ name: Build from external release
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # sprawdzaj co 30 minut
+    - cron: "0 12 * * *"   # sprawdzaj co 30 minut
   workflow_dispatch:          # ręczne odpalenie
 
 jobs:
