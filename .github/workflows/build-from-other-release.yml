@@ -58,6 +58,7 @@ jobs:
       - name: Build project
         if: steps.my_release.outputs.new_release == 'true'
         run: |
+          cd source
           ./BuildLinux.sh -sr
           # po buildzie zakładam katalog "dist/"
 
