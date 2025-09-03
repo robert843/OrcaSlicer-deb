@@ -38,7 +38,7 @@ jobs:
           mkdir source
           tar -xzf source.tar.gz -C source --strip-components=1
 
-      - name: Build project
+      - name: Get deps
         if: steps.my_release.outputs.new_release == 'true'
         run: |
           cd source
@@ -54,6 +54,10 @@ jobs:
           libwebkit2gtk-4.1-dev libxkbcommon-dev locales locales-all m4 pkgconf sudo wayland-protocols wget libfuse2t64
           ./BuildLinux.sh -u
           ./BuildLinux.sh -dr
+          # po buildzie zakładam katalog "dist/"
+      - name: Build project
+        if: steps.my_release.outputs.new_release == 'true'
+        run: |
           ./BuildLinux.sh -sr
           # po buildzie zakładam katalog "dist/"
 
@@ -62,6 +66,7 @@ jobs:
         run: |
           APP_NAME="OrcaSlicer"
           VERSION="${{ steps.other_release.outputs.latest }}"
+          VERSION="${VERSION#v}"
           ARCH="amd64"
 
           mkdir -p pkg/DEBIAN

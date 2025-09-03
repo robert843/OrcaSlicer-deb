@@ -1,0 +1,35 @@
+name: Publish to PPA
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y debhelper devscripts dput gnupg
+
+      - name: Import GPG key
+        env:
+          GPG_KEY: ${{ secrets.GPG_KEY_BASE64 }}
+        run: |
+          echo "$GPG_KEY" | base64 --decode | gpg --batch --import
+
+      - name: Create source package
+        run: |
+          # Tutaj umieść polecenia do budowy pakietu źródłowego .tar.gz i .dsc
+          # np. debuild -S -sa
+          debuild -S -sa
+
+      - name: Upload to PPA
+        env:
+          LAUNCHPAD_PPA: ppa:TWOJA_NAZWA_UZYTKOWNIKA/TWOJE_PPA_REPO
+        run: |
+          # Użyj narzędzia dput do wysłania pakietu na PPA
+          dput "$LAUNCHPAD_PPA" ../*.changes
