@@ -1,0 +1,64 @@
+name: Build from external release
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # sprawdzaj co 30 minut
+  workflow_dispatch:          # ręczne odpalenie
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest release from repo B
+        id: other_release
+        run: |
+          latest=$(curl -s https://api.github.com/repos/SoftFever/OrcaSlicer/releases/latest | jq -r .tag_name)
+          echo "latest=$latest" >> $GITHUB_OUTPUT
+
+      - name: Check if release already exists in this repo
+        id: my_release
+        run: |
+          exists=$(curl -s \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ steps.other_release.outputs.latest }} \
+            | jq -r .message)
+
+          if [ "$exists" == "Not Found" ]; then
+            echo "new_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download release source
+        if: steps.my_release.outputs.new_release == 'true'
+        run: |
+          url=$(curl -s https://api.github.com/repos/SoftFever/OrcaSlicer/releases/latest | jq -r .tarball_url)
+          curl -L "$url" -o source.tar.gz
+          mkdir source
+          tar -xzf source.tar.gz -C source --strip-components=1
+
+      - name: Build project
+        if: steps.my_release.outputs.new_release == 'true'
+        run: |
+          cd source
+          # dostosuj do swojego projektu:
+          make build
+          # po buildzie zakładam katalog "dist/"
+
+      - name: Package .deb
+        if: steps.my_release.outputs.new_release == 'true'
+        run: |
+          cd source
+          ./build-deb.sh
+          mv *.deb ../package.deb
+
+      - name: Create release in this repo
+        if: steps.my_release.outputs.new_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.other_release.outputs.latest }}
+          name: "Build from external ${{ steps.other_release.outputs.latest }}"
+          files: package.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
