@@ -51,9 +51,26 @@ jobs:
       - name: Package .deb
         if: steps.my_release.outputs.new_release == 'true'
         run: |
-          cd source
-          ./build-deb.sh
-          mv *.deb ../package.deb
+          APP_NAME="OrcaSlicer"
+          VERSION="${{ steps.other_release.outputs.latest }}"
+          ARCH="amd64"
+
+          mkdir -p pkg/DEBIAN
+          mkdir -p pkg/opt/orca-slicer
+
+          cp -r source/build/package/* pkg/opt/orca-slicer
+
+          cat > pkg/DEBIAN/control <<EOF
+          Package: $APP_NAME
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: $ARCH
+          Maintainer: Your Name <you@example.com>
+          Description: Open source Next-Gen Slicing Software for Precision 3D Prints.
+          EOF
+
+          dpkg-deb --build pkg "${APP_NAME}_${VERSION}_${ARCH}.deb"
 
       - name: Create release in this repo
         if: steps.my_release.outputs.new_release == 'true'
@@ -61,6 +78,6 @@ jobs:
         with:
           tag_name: ${{ steps.other_release.outputs.latest }}
           name: "Build from external ${{ steps.other_release.outputs.latest }}"
-          files: package.deb
+          files: "*.deb"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
