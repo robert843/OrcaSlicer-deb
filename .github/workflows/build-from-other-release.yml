@@ -43,7 +43,7 @@ jobs:
         run: |
           cd source
           perl -p -i -e 's/https:\/\/www.mpfr.org\/mpfr-current\/mpfr-4.2.1.tar.bz2/https:\/\/www.mpfr.org\/mpfr-4.2.1\/mpfr-4.2.1.tar.bz2/g' ./flatpak/io.github.softfever.OrcaSlicer.yml ./deps/MPFR/MPFR.cmake 
-          perl -p -i -e 's/4fca1b582c88319f3ad6ecd5b46320eadaf5eb4ef6f6c32d44caaae4a03d0726/17a3e875acece9be40b093361cfef47385d4ef22c995ffbf36b2871f5785f9b8/g' ./deps/TIFF/TIFF.cmake 
+          perl -p -i -e 's/c56edfacef0a60c0de3e6489194fcb2f24c03dbb550a8a7de5938642d045bd32/17a3e875acece9be40b093361cfef47385d4ef22c995ffbf36b2871f5785f9b8/g' ./deps/TIFF/TIFF.cmake 
           
           # dostosuj do swojego projektu:
           sudo apt-get update
