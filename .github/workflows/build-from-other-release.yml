@@ -44,7 +44,8 @@ jobs:
           cd source
           # dostosuj do swojego projektu:
           ./BuildLinux.sh -u
-          ./BuildLinux.sh -dsr
+          ./BuildLinux.sh -dr
+
           # po buildzie zakładam katalog "dist/"
 
       - name: Package .deb
