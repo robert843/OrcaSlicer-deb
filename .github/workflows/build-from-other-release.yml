@@ -43,7 +43,8 @@ jobs:
         run: |
           cd source
           # dostosuj do swojego projektu:
-          make build
+          ./build_linux.sh -u
+          ./build_linux.sh -dsr
           # po buildzie zakładam katalog "dist/"
 
       - name: Package .deb
