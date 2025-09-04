@@ -1,7 +1,10 @@
 ---
 layout: home
-title: OrcaSlicer
+title: OrcaSlicer DEB Repository
 ---
+This project provides a non-official DEB repository for the popular 3D printing slicer, OrcaSlicer. It offers a convenient way for users on Debian-based systems (like Debian, Ubuntu, and Linux Mint) to install and update OrcaSlicer directly via their system's package manager.
+
+By packaging the application as a DEB, this repository ensures proper system integration, including automatic updates and correct desktop environment shortcuts. This eliminates the need for manual handling of AppImage files, offering a seamless and native installation experience.
 
 ## How to Install?
 
