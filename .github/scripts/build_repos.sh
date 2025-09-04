@@ -17,7 +17,7 @@ main() {
   export GPG_TTY
 
   mkdir -p "$DEB_POOL"
-
+  cp *.deb $DEB_POOL
 
     pushd _site/deb >/dev/null
     mkdir -p "${DEB_DISTS_COMPONENTS}"
