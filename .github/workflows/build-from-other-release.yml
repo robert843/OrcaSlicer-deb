@@ -119,7 +119,20 @@ jobs:
           files: "*.deb"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
 
+  create-gh-page:
+      if: ${{ needs.check-and-build.outputs.new_release == 'true' }}
+      environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+      runs-on: ubuntu-latest
+      needs: check-and-build
+      steps:
       - name: Install required packages
         if: steps.my_release.outputs.new_release == 'true'
         run: |
@@ -177,7 +190,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: check-and-build
+    needs: create-gh-page
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
