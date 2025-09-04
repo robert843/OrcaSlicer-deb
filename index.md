@@ -10,13 +10,13 @@ title: OrcaSlicer deb
 Run:
 
 ```
-wget -qO- {{ site.url }}/public.asc | sudo tee /etc/apt/keyrings/orca-slicer.asc >/dev/null
+wget -qO- {{ site.url }}/{{ site.base_url }}/public.asc | sudo tee /etc/apt/keyrings/orca-slicer.asc >/dev/null
 ```
 
 Next, create the source in `/etc/apt/sources.list.d/`
 
 ```
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/orca-slicer.asc] {{ site.url }}/deb stable main" | sudo tee /etc/apt/sources.list.d/orca-slicer.list >/dev/null
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/orca-slicer.asc] {{ site.url }}/{{ site.base_url }}/deb stable main" | sudo tee /etc/apt/sources.list.d/orca-slicer.list >/dev/null
 ```
 
 Then run `apt update && apt install -y` followed by the names of the packages you want to install.
