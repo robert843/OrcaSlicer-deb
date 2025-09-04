@@ -73,8 +73,14 @@ jobs:
 
           mkdir -p pkg/DEBIAN
           mkdir -p pkg/opt/orca-slicer
-
+          mkdir -p pkg/usr/share/applications/
+          mkdir -p pkg/usr/share/icons/hicolor/scalable/apps
+          mkdir -p pkg/usr/bin
+          
+          ln -s /opt/orca-slicer/orca-slicer pkg/usr/bin/orca-slicer
+          
           cp -r source/build/package/* pkg/opt/orca-slicer
+          cp source/resources/images/OrcaSlicer.svg pkg/usr/share/icons/hicolor/scalable/apps/OrcaSlicer.svg
 
           cat > pkg/DEBIAN/control <<EOF
           Package: $APP_NAME
@@ -84,6 +90,17 @@ jobs:
           Architecture: $ARCH
           Maintainer: Your Name <you@example.com>
           Description: Open source Next-Gen Slicing Software for Precision 3D Prints.
+          EOF
+
+          cat > pkg/usr/share/applications/orcaslicer.desktop <<EOF
+          [Desktop Entry]
+          Name=$APP_NAME
+          Comment=3D printing slicer
+          Exec=orca-slicer
+          Icon=OrcaSlicer
+          Terminal=false
+          Type=Application
+          Categories=Graphics;Engineering;
           EOF
 
           dpkg-deb --build pkg "${APP_NAME}_${VERSION}_${ARCH}.deb"
