@@ -22,4 +22,7 @@ Next, create the source in `/etc/apt/sources.list.d/`
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/orca-slicer.asc] {{ site.url }}{{ site.baseurl }} stable main" | sudo tee /etc/apt/sources.list.d/orca-slicer.list >/dev/null
 ```
 
-Then run `apt update && apt install -y` followed by the names of the packages you want to install.
+Then run 
+```
+apt update && apt install -y orcaslicer
+```
