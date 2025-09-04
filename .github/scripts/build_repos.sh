@@ -26,7 +26,7 @@ main() {
   gzip -9 > "${DEB_DISTS_COMPONENTS}/Packages.gz" < "${DEB_DISTS_COMPONENTS}/Packages"
   bzip2 -9 > "${DEB_DISTS_COMPONENTS}/Packages.bz2" < "${DEB_DISTS_COMPONENTS}/Packages"
   popd >/dev/null
-  pushd "_site/deb/${DEB_DISTS}" >/dev/null
+  pushd "_site/${DEB_DISTS}" >/dev/null
   echo "Making Release file"
   {
     echo "Origin: ${ORIGIN}"
