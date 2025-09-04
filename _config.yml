@@ -2,8 +2,8 @@ title: orcaslicer-deb
 email: robert843@o2.pl
 description: >-
   This project is a script which polls the AWS Metadata Service looking for a termination warning, and triggers a response.
-baseurl: ""
-url: "https://robert843.github.io/orcaslicer-ppa/"
+url: "https://robert843.github.io"
+baseurl: "/orcaslicer-ppa"
 github_username: robert843
 
 # Build settings
