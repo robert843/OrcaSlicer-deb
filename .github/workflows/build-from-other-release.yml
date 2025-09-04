@@ -10,7 +10,12 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      pages: write
+      id-token: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Get latest release from repo B
         id: other_release
         run: |
@@ -88,7 +93,7 @@ jobs:
           Section: utils
           Priority: optional
           Architecture: $ARCH
-          Maintainer: Your Name <you@example.com>
+          Maintainer: robert843 <robert843@o2.pl>
           Description: Open source Next-Gen Slicing Software for Precision 3D Prints.
           EOF
 
@@ -105,7 +110,7 @@ jobs:
 
           dpkg-deb --build pkg "${APP_NAME}_${VERSION}_${ARCH}.deb"
 
-      - name: Create release in this repo
+      - name: Create release
         if: steps.my_release.outputs.new_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
@@ -114,3 +119,56 @@ jobs:
           files: "*.deb"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install required packages
+        run: |
+          sudo apt install -y jq createrepo-c coreutils gnupg2 dpkg-dev
+
+      - name: Insert environment variables
+        run: |
+          echo GNUPGHOME="$(mktemp -d /tmp/pgpkeys-XXXXXX)" >> $GITHUB_ENV
+          echo REPO_OWNER="$(echo "${GITHUB_REPOSITORY}" | cut -d/ -f1)" >> $GITHUB_ENV
+          echo REPO_NAME="$(echo "${GITHUB_REPOSITORY}" | cut -d/ -f2)" >> $GITHUB_ENV
+
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Confirm GPG Key loaded
+        run: |
+          gpg --list-keys
+          echo "${{ steps.import_gpg.outputs.fingerprint }}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Set permissions on the _site directory
+        run: sudo chown -R runner:docker _site
+
+      - name: Build DEB and APT Repos
+        run: |
+          export GPG_FINGERPRINT="${{ steps.import_gpg.outputs.fingerprint }}"
+          export ORIGIN="${{ steps.import_gpg.outputs.name }}"
+          .github/scripts/build_repos.sh
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: check-and-build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
