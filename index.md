@@ -1,6 +1,6 @@
 ---
 layout: home
-title: OrcaSlicer deb
+title: OrcaSlicer
 ---
 
 ## How to Install?
