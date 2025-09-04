@@ -10,7 +10,7 @@ generate_hashes() {
 }
 
 main() {
-  DEB_POOL="_site/deb/pool/${COMPONENTS:-main}"
+  DEB_POOL="_site/pool/${COMPONENTS:-main}"
   DEB_DISTS="dists/${SUITE:-stable}"
   DEB_DISTS_COMPONENTS="${DEB_DISTS}/${COMPONENTS:-main}/binary-amd64"
   GPG_TTY=""
@@ -19,7 +19,7 @@ main() {
   mkdir -p "$DEB_POOL"
   mv *.deb $DEB_POOL
 
-  pushd _site/deb >/dev/null
+  pushd _site/ >/dev/null
   mkdir -p "${DEB_DISTS_COMPONENTS}"
   echo "Scanning all downloaded DEB Packages and creating Packages file."
   dpkg-scanpackages --arch amd64 pool/ > "${DEB_DISTS_COMPONENTS}/Packages"
