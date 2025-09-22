@@ -65,7 +65,7 @@ jobs:
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
-          source: index.md
+          source: ./.github/templates/
           destination: ./_site
 
       - name: Set permissions on the _site directory
