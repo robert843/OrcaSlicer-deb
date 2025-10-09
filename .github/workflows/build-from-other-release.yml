@@ -83,7 +83,6 @@ jobs:
           mkdir -p pkg/usr/bin
           
           ln -s /opt/orca-slicer/orca-slicer pkg/usr/bin/orca-slicer
-          chmod +x pkg/usr/bin/orca-slicer
 
           cp -r source/build/package/* pkg/opt/orca-slicer
           cp source/resources/images/OrcaSlicer.svg pkg/usr/share/icons/hicolor/scalable/apps/OrcaSlicer.svg
