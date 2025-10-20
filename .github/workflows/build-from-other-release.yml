@@ -81,6 +81,7 @@ jobs:
           mkdir -p pkg/usr/share/applications/
           mkdir -p pkg/usr/share/icons/hicolor/scalable/apps
           mkdir -p pkg/usr/bin
+          chmod +x pkg/opt/orca-slicer/orca-slicer
           
           ln -s /opt/orca-slicer/orca-slicer pkg/usr/bin/orca-slicer
 
@@ -99,13 +100,15 @@ jobs:
 
           cat > pkg/usr/share/applications/orcaslicer.desktop <<EOF
           [Desktop Entry]
-          Name=$APP_NAME
+          Type=Application
+          Name=OrcaSlicer
+          Icon=OrcaSlicer
           Comment=3D printing slicer
           Exec=orca-slicer
-          Icon=OrcaSlicer
+          MimeType=application/x-stl;
           Terminal=false
-          Type=Application
-          Categories=Graphics;Engineering;
+          Categories=Graphics;3DGraphics;Engineering;
+          Keywords=3d;solid;geometry;model;stl;
           EOF
 
           dpkg-deb --build pkg "${APP_NAME}_${VERSION}_${ARCH}.deb"
