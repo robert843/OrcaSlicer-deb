@@ -81,13 +81,13 @@ jobs:
           mkdir -p pkg/usr/share/applications/
           mkdir -p pkg/usr/share/icons/hicolor/scalable/apps
           mkdir -p pkg/usr/bin
-          chmod +x pkg/opt/orca-slicer/orca-slicer
           
-          ln -s /opt/orca-slicer/orca-slicer pkg/usr/bin/orca-slicer
-
           cp -r source/build/package/* pkg/opt/orca-slicer
           cp source/resources/images/OrcaSlicer.svg pkg/usr/share/icons/hicolor/scalable/apps/OrcaSlicer.svg
-
+          
+          ln -s /opt/orca-slicer/orca-slicer pkg/usr/bin/orca-slicer
+          chmod +x pkg/opt/orca-slicer/orca-slicer
+          
           cat > pkg/DEBIAN/control <<EOF
           Package: $APP_NAME
           Version: $VERSION
