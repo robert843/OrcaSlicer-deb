@@ -5,14 +5,3 @@ services:
       - --http-enabled
     image: portainer/portainer-ce:lts
     restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-
-volumes:
-  portainer_data:
-    name: portainer_data
-
-networks:
-  default:
-    name: portainer_network
