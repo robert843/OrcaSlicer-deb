@@ -1,0 +1,313 @@
+name: Build OrcaSlicer .deb from AppImage
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  check-and-build:
+    runs-on: ubuntu-24.04
+    outputs:
+      new_release: ${{ steps.check.outputs.exists == 'false' }}
+      version: ${{ steps.upstream.outputs.version }}
+      tag: ${{ steps.upstream.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest OrcaSlicer release tag
+        id: upstream
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | jq -r '.tag_name')
+          echo "tag=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "version=${LATEST#v}" >> "$GITHUB_OUTPUT"
+          echo "Latest upstream: $LATEST"
+
+      - name: Check if we already have this release
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.upstream.outputs.tag }}" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Release ${{ steps.upstream.outputs.tag }} already exists, skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "New release ${{ steps.upstream.outputs.tag }} found, building..."
+          fi
+
+      - name: Download AppImage
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.upstream.outputs.version }}"
+          ASSET="OrcaSlicer_Linux_AppImage_Ubuntu2404_V${VERSION}.AppImage"
+          URL="https://github.com/OrcaSlicer/OrcaSlicer/releases/download/${{ steps.upstream.outputs.tag }}/${ASSET}"
+          echo "Downloading $URL"
+          curl -L -o OrcaSlicer.AppImage "$URL"
+          chmod +x OrcaSlicer.AppImage
+
+      - name: Extract AppImage
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          ./OrcaSlicer.AppImage --appimage-extract
+          ls -la squashfs-root/
+
+      - name: Build .deb package
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.upstream.outputs.version }}"
+          PKG_ROOT="orcaslicer_${VERSION}_amd64"
+
+          mkdir -p "${PKG_ROOT}/DEBIAN"
+          mkdir -p "${PKG_ROOT}/opt/OrcaSlicer"
+          mkdir -p "${PKG_ROOT}/usr/share/applications"
+          mkdir -p "${PKG_ROOT}/usr/share/icons/hicolor/256x256/apps"
+          mkdir -p "${PKG_ROOT}/usr/bin"
+
+          # /opt/OrcaSlicer/ — only app binaries and resources
+          cp -a squashfs-root/bin "${PKG_ROOT}/opt/OrcaSlicer/"
+          cp -a squashfs-root/resources "${PKG_ROOT}/opt/OrcaSlicer/"
+
+          # usr/ from AppImage → real /usr/ (icons etc.)
+          cp -a squashfs-root/usr/* "${PKG_ROOT}/usr/"
+
+          # Icon → also to 256x256 with lowercase name
+          cp squashfs-root/OrcaSlicer.png "${PKG_ROOT}/usr/share/icons/hicolor/256x256/apps/orcaslicer.png"
+
+          # /usr/bin/orca-slicer — adapted AppRun launcher
+          cat > "${PKG_ROOT}/usr/bin/orca-slicer" << 'EOFWRAPPER'
+          #!/bin/bash
+          DIR="/opt/OrcaSlicer"
+          export LD_LIBRARY_PATH="$DIR/bin:$LD_LIBRARY_PATH"
+          export LC_ALL=C
+          if [ "$XDG_SESSION_TYPE" = "wayland" ] && [ "$ZINK_DISABLE_OVERRIDE" != "1" ]; then
+              if command -v glxinfo >/dev/null 2>&1; then
+                  RENDERER=$(glxinfo | grep "OpenGL renderer string:" | sed 's/.*: //')
+                  if echo "$RENDERER" | grep -qi "NVIDIA"; then
+                      if command -v nvidia-smi >/dev/null 2>&1; then
+                          DRIVER_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n1)
+                          DRIVER_MAJOR=$(echo "$DRIVER_VERSION" | cut -d. -f1)
+                          [ "$DRIVER_MAJOR" -gt 555 ] && ZINK_FORCE_OVERRIDE=1
+                      fi
+                      if [ "$ZINK_FORCE_OVERRIDE" = "1" ]; then
+                          export __GLX_VENDOR_LIBRARY_NAME=mesa
+                          export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+                          export MESA_LOADER_DRIVER_OVERRIDE=zink
+                          export GALLIUM_DRIVER=zink
+                          export WEBKIT_DISABLE_DMABUF_RENDERER=1
+                      fi
+                  fi
+              fi
+          fi
+          exec "$DIR/bin/orca-slicer" "$@"
+          EOFWRAPPER
+          sed -i 's/^          //' "${PKG_ROOT}/usr/bin/orca-slicer"
+          chmod 755 "${PKG_ROOT}/usr/bin/orca-slicer"
+
+          # .desktop file
+          cat > "${PKG_ROOT}/usr/share/applications/orcaslicer.desktop" << 'EOFDESKTOP'
+          [Desktop Entry]
+          Name=OrcaSlicer
+          Comment=G-code generator for 3D printers (Bambu, Prusa, Voron, VzBot, RatRig, Creality, etc.)
+          Exec=orca-slicer %F
+          Icon=orcaslicer
+          Terminal=false
+          Type=Application
+          Categories=Graphics;3DGraphics;Engineering;
+          MimeType=model/stl;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;
+          StartupNotify=true
+          StartupWMClass=OrcaSlicer
+          EOFDESKTOP
+          sed -i 's/^          //' "${PKG_ROOT}/usr/share/applications/orcaslicer.desktop"
+
+          # Calculate installed size (in KB)
+          INSTALLED_SIZE=$(du -sk "${PKG_ROOT}" | cut -f1)
+
+          # DEBIAN/control
+          cat > "${PKG_ROOT}/DEBIAN/control" << EOFCONTROL
+          Package: orcaslicer
+          Version: ${VERSION}
+          Section: graphics
+          Priority: optional
+          Architecture: amd64
+          Installed-Size: ${INSTALLED_SIZE}
+          Depends: libgtk-3-0, libgl1, libegl1, libglib2.0-0, libwebkit2gtk-4.1-0, libgstreamer1.0-0, libgstreamer-plugins-base1.0-0, libsecret-1-0
+          Maintainer: OrcaSlicer-deb <orcaslicer-deb@users.noreply.github.com>
+          Homepage: https://github.com/OrcaSlicer/OrcaSlicer
+          Description: OrcaSlicer - G-code generator for 3D printers
+           OrcaSlicer is an open-source slicer for FDM 3D printers.
+           It supports Bambu Lab, Prusa, Voron, and many other printers.
+           .
+           Repackaged automatically from the official AppImage release.
+          EOFCONTROL
+          sed -i 's/^          //' "${PKG_ROOT}/DEBIAN/control"
+
+          # DEBIAN/postinst
+          cat > "${PKG_ROOT}/DEBIAN/postinst" << 'EOFPOST'
+          #!/bin/bash
+          update-desktop-database /usr/share/applications 2>/dev/null || true
+          gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
+          EOFPOST
+          sed -i 's/^          //' "${PKG_ROOT}/DEBIAN/postinst"
+          chmod 755 "${PKG_ROOT}/DEBIAN/postinst"
+
+          # Fix permissions
+          find "${PKG_ROOT}" -type d -exec chmod 755 {} \;
+          find "${PKG_ROOT}/DEBIAN" -type f -name "control" -exec chmod 644 {} \;
+
+          # Build .deb
+          dpkg-deb --build --root-owner-group "${PKG_ROOT}"
+
+          DEB_FILE="${PKG_ROOT}.deb"
+          echo "deb_file=${DEB_FILE}" >> "$GITHUB_ENV"
+          echo "Built: ${DEB_FILE} ($(du -h ${DEB_FILE} | cut -f1))"
+
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.upstream.outputs.version }}"
+          TAG="${{ steps.upstream.outputs.tag }}"
+
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --title "OrcaSlicer ${VERSION}" \
+            --notes "## OrcaSlicer ${VERSION} (.deb package for Ubuntu 24.04+)
+
+          Automatically repackaged from the official AppImage release.
+
+          ### Installation
+          \`\`\`bash
+          sudo dpkg -i orcaslicer_${VERSION}_amd64.deb
+          sudo apt-get install -f  # install missing dependencies if needed
+          \`\`\`
+
+          ### Uninstall
+          \`\`\`bash
+          sudo apt remove orcaslicer
+          \`\`\`
+
+          Application is installed to \`/opt/OrcaSlicer/\`.
+          Command: \`orca-slicer\`" \
+            "${deb_file}"
+
+  update-apt-repo:
+    runs-on: ubuntu-24.04
+    needs: check-and-build
+    if: needs.check-and-build.outputs.new_release == 'true'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install APT repo tools
+        run: sudo apt-get update && sudo apt-get install -y dpkg-dev
+
+      - name: Import GPG key
+        env:
+          GPG_KEY: ${{ secrets.PRIVATE_KEY }}
+        run: |
+          if [ -n "$GPG_KEY" ]; then
+            echo "$GPG_KEY" | gpg --batch --import
+            GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d/ -f2)
+            echo "gpg_key_id=${GPG_KEY_ID}" >> "$GITHUB_ENV"
+            echo "gpg_available=true" >> "$GITHUB_ENV"
+            echo "GPG key imported: ${GPG_KEY_ID}"
+          else
+            echo "No PRIVATE_KEY secret found, repository will not be signed."
+            echo "gpg_available=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Download all .deb releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p apt-repo/pool
+          gh release list --repo "${{ github.repository }}" --limit 100 --json tagName -q '.[].tagName' | while read -r tag; do
+            gh release download "$tag" \
+              --repo "${{ github.repository }}" \
+              --pattern "*.deb" \
+              --dir apt-repo/pool \
+              --skip-existing || true
+          done
+          echo "Downloaded .deb files:"
+          ls -lh apt-repo/pool/
+
+      - name: Generate APT repository metadata
+        run: |
+          cd apt-repo
+
+          mkdir -p dists/stable/main/binary-amd64
+
+          # Generate Packages file
+          dpkg-scanpackages --multiversion pool /dev/null > dists/stable/main/binary-amd64/Packages
+          gzip -9c dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
+
+          # Generate Release file
+          cd dists/stable
+          cat > Release << 'EOFRELEASE'
+          Origin: OrcaSlicer-deb
+          Label: OrcaSlicer
+          Suite: stable
+          Codename: stable
+          Architectures: amd64
+          Components: main
+          Description: OrcaSlicer .deb packages - automatically built from official AppImage releases
+          EOFRELEASE
+          sed -i 's/^          //' Release
+
+          # Add checksums
+          apt-ftparchive release . >> Release
+
+      - name: Sign repository
+        if: env.gpg_available == 'true'
+        run: |
+          cd apt-repo/dists/stable
+
+          # Detached signature
+          gpg --batch --yes --default-key "${{ env.gpg_key_id }}" \
+            -abs -o Release.gpg Release
+
+          # Inline signature
+          gpg --batch --yes --default-key "${{ env.gpg_key_id }}" \
+            --clearsign -o InRelease Release
+
+          # Export public key
+          gpg --armor --export "${{ env.gpg_key_id }}" > ../../KEY.gpg
+
+      - name: Prepare GitHub Pages content
+        run: |
+          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+
+          # Install script
+          cat > apt-repo/install.sh << EOFINSTALL
+          #!/bin/bash
+          set -e
+          echo "Adding OrcaSlicer APT repository..."
+          if curl -fsSL "${REPO_URL}/KEY.gpg" -o /dev/null 2>&1; then
+              curl -fsSL "${REPO_URL}/KEY.gpg" | sudo gpg --dearmor -o /usr/share/keyrings/orcaslicer.gpg
+              echo "deb [signed-by=/usr/share/keyrings/orcaslicer.gpg] ${REPO_URL} stable main" | sudo tee /etc/apt/sources.list.d/orcaslicer.list
+          else
+              echo "deb [trusted=yes] ${REPO_URL} stable main" | sudo tee /etc/apt/sources.list.d/orcaslicer.list
+          fi
+          sudo apt-get update
+          echo ""
+          echo "Done! Now install with: sudo apt install orcaslicer"
+          EOFINSTALL
+          sed -i 's/^          //' apt-repo/install.sh
+          chmod 755 apt-repo/install.sh
+
+          # Landing page with instructions
+          cp pages/index.html apt-repo/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apt-repo
+          force_orphan: true

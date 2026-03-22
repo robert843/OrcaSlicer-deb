@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrcaSlicer APT Repository</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            background: #0d1117;
+            padding: 2rem;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #58a6ff;
+        }
+        h1 span { color: #8b949e; font-weight: 300; }
+        .subtitle {
+            color: #8b949e;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+        h2 {
+            font-size: 1.3rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #c9d1d9;
+            border-bottom: 1px solid #21262d;
+            padding-bottom: 0.4rem;
+        }
+        h3 {
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #c9d1d9;
+        }
+        p { margin-bottom: 1rem; color: #8b949e; }
+        pre {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9rem;
+            color: #c9d1d9;
+        }
+        p code {
+            background: #161b22;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #8b949e;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .copy-btn:hover { background: #30363d; color: #c9d1d9; }
+        .step-num {
+            display: inline-block;
+            background: #1f6feb;
+            color: white;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 1.5rem;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+        .note {
+            background: #0d1117;
+            border-left: 3px solid #1f6feb;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .note p { margin: 0; }
+        a { color: #58a6ff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #21262d;
+            color: #484f58;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <h1>OrcaSlicer <span>APT Repository</span></h1>
+    <p class="subtitle">Unofficial .deb packages for Ubuntu/Debian/Mint &mdash; automatically built from official AppImage releases.</p>
+
+    <h2>Quick Install</h2>
+    <p>Run this one-liner to add the repository and install OrcaSlicer:</p>
+    <pre><code id="oneliner">curl -fsSL REPO_URL/install.sh | sudo bash && sudo apt install orcaslicer</code><button class="copy-btn" onclick="copy('oneliner')">Copy</button></pre>
+
+    <h2>Manual Setup</h2>
+
+    <h3><span class="step-num">1</span>Add the GPG key</h3>
+    <pre><code id="step1">curl -fsSL REPO_URL/KEY.gpg | sudo gpg --dearmor -o /usr/share/keyrings/orcaslicer.gpg</code><button class="copy-btn" onclick="copy('step1')">Copy</button></pre>
+
+    <h3><span class="step-num">2</span>Add the repository</h3>
+    <pre><code id="step2">echo "deb [signed-by=/usr/share/keyrings/orcaslicer.gpg] REPO_URL stable main" | sudo tee /etc/apt/sources.list.d/orcaslicer.list</code><button class="copy-btn" onclick="copy('step2')">Copy</button></pre>
+
+    <div class="note">
+        <p>If the repository is not GPG-signed yet, use <code>[trusted=yes]</code> instead of the <code>signed-by</code> option.</p>
+    </div>
+
+    <h3><span class="step-num">3</span>Install</h3>
+    <pre><code id="step3">sudo apt update && sudo apt install orcaslicer</code><button class="copy-btn" onclick="copy('step3')">Copy</button></pre>
+
+    <h2>Usage</h2>
+    <p>After installation, launch from the terminal or your application menu:</p>
+    <pre><code>orca-slicer</code></pre>
+    <p>Files are installed to <code>/opt/OrcaSlicer/</code>. Updates arrive automatically via <code>apt update && apt upgrade</code>.</p>
+
+    <h2>Uninstall</h2>
+    <pre><code id="uninstall">sudo apt remove orcaslicer
+sudo rm /etc/apt/sources.list.d/orcaslicer.list
+sudo rm /usr/share/keyrings/orcaslicer.gpg</code><button class="copy-btn" onclick="copy('uninstall')">Copy</button></pre>
+
+    <div class="footer">
+        <p>
+            Packages are built automatically from
+            <a href="https://github.com/OrcaSlicer/OrcaSlicer/releases">official OrcaSlicer releases</a>.
+            Source: <a href="GITHUB_REPO_URL">GITHUB_REPO_URL</a>
+        </p>
+    </div>
+
+</div>
+<script>
+    // Replace REPO_URL placeholders with actual GitHub Pages URL
+    const owner = location.hostname.split('.')[0];
+    const repo = location.pathname.split('/').filter(Boolean)[0] || '';
+    const repoUrl = location.origin + (repo ? '/' + repo : '');
+    const githubRepoUrl = 'https://github.com/' + owner + '/' + repo;
+    document.body.innerHTML = document.body.innerHTML
+        .replaceAll('REPO_URL', repoUrl)
+        .replaceAll('GITHUB_REPO_URL', githubRepoUrl);
+
+    function copy(id) {
+        const text = document.getElementById(id).textContent;
+        navigator.clipboard.writeText(text);
+        const btn = document.getElementById(id).parentElement.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+</script>
+</body>
+</html>
