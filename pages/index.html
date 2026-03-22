@@ -5,151 +5,437 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrcaSlicer APT Repository</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg: #0a0e17;
+            --bg-card: #111827;
+            --bg-code: #0d1321;
+            --border: #1e293b;
+            --border-glow: #3b82f620;
+            --text: #e2e8f0;
+            --text-dim: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-glow: #3b82f640;
+            --accent-2: #8b5cf6;
+            --green: #10b981;
+            --orange: #f59e0b;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #e0e0e0;
-            background: #0d1117;
-            padding: 2rem;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            min-height: 100vh;
         }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 {
-            font-size: 2rem;
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Top glow */
+        .glow {
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 400px;
+            background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 4rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        .hero h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
             margin-bottom: 0.5rem;
-            color: #58a6ff;
         }
-        h1 span { color: #8b949e; font-weight: 300; }
-        .subtitle {
-            color: #8b949e;
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
+
+        .hero p {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .badges {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .dot-green { background: var(--green); }
+        .dot-blue { background: var(--accent); }
+        .dot-orange { background: var(--orange); }
+
+        /* Sections */
         h2 {
-            font-size: 1.3rem;
-            margin-top: 2rem;
-            margin-bottom: 0.75rem;
-            color: #c9d1d9;
-            border-bottom: 1px solid #21262d;
-            padding-bottom: 0.4rem;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 2.5rem 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
         }
-        h3 {
-            font-size: 1.1rem;
-            margin-top: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #c9d1d9;
-        }
-        p { margin-bottom: 1rem; color: #8b949e; }
-        pre {
-            background: #161b22;
-            border: 1px solid #30363d;
+
+        h2 .icon {
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
             border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        p, li { color: var(--text-dim); }
+
+        p { margin-bottom: 0.75rem; font-size: 0.92rem; }
+
+        /* Code blocks */
+        .code-block {
+            position: relative;
+            margin: 0.75rem 0 1.25rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: #0f172a;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.25rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        pre {
             padding: 1rem;
             overflow-x: auto;
-            margin-bottom: 1rem;
-            position: relative;
         }
+
         code {
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 0.9rem;
-            color: #c9d1d9;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: var(--text);
+            line-height: 1.6;
         }
+
         p code {
-            background: #161b22;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            font-size: 0.82rem;
+        }
+
+        /* Steps */
+        .steps {
+            counter-reset: step;
+        }
+
+        .step {
+            margin-bottom: 1.5rem;
+        }
+
+        .step h3 {
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .step h3::before {
+            counter-increment: step;
+            content: counter(step);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            border-radius: 50%;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        /* Quick install card */
+        .quick-card {
+            background: linear-gradient(135deg, #1e293b, #111827);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 24px #00000030;
+        }
+
+        .quick-card h2 {
+            margin-top: 0;
+        }
+
+        /* Info box */
+        .info-box {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            background: #1e293b40;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
             font-size: 0.85rem;
         }
-        .copy-btn {
-            position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            background: #21262d;
-            border: 1px solid #30363d;
-            color: #8b949e;
-            padding: 0.3rem 0.6rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75rem;
-        }
-        .copy-btn:hover { background: #30363d; color: #c9d1d9; }
-        .step-num {
-            display: inline-block;
-            background: #1f6feb;
-            color: white;
-            width: 1.5rem;
-            height: 1.5rem;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 1.5rem;
-            font-size: 0.8rem;
-            margin-right: 0.5rem;
-        }
-        .note {
-            background: #0d1117;
-            border-left: 3px solid #1f6feb;
-            padding: 0.75rem 1rem;
-            margin: 1rem 0;
-            border-radius: 0 4px 4px 0;
-        }
-        .note p { margin: 0; }
-        a { color: #58a6ff; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+
+        .info-box p { margin: 0; }
+
+        /* Footer */
         .footer {
             margin-top: 3rem;
             padding-top: 1.5rem;
-            border-top: 1px solid #21262d;
-            color: #484f58;
-            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .footer a:hover { text-decoration: underline; }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        @media (max-width: 600px) {
+            .container { padding: 2rem 1rem 3rem; }
+            .hero h1 { font-size: 1.7rem; }
+            pre { padding: 0.75rem; }
+            code { font-size: 0.75rem; }
         }
     </style>
 </head>
 <body>
+<div class="glow"></div>
 <div class="container">
 
-    <h1>OrcaSlicer <span>APT Repository</span></h1>
-    <p class="subtitle">Unofficial .deb packages for Ubuntu/Debian/Mint &mdash; automatically built from official AppImage releases.</p>
-
-    <h2>Quick Install</h2>
-    <p>Run this one-liner to add the repository and install OrcaSlicer:</p>
-    <pre><code id="oneliner">curl -fsSL REPO_URL/install.sh | sudo bash && sudo apt install orcaslicer</code><button class="copy-btn" onclick="copy('oneliner')">Copy</button></pre>
-
-    <h2>Manual Setup</h2>
-
-    <h3><span class="step-num">1</span>Add the GPG key</h3>
-    <pre><code id="step1">curl -fsSL REPO_URL/KEY.gpg | sudo gpg --dearmor -o /usr/share/keyrings/orcaslicer.gpg</code><button class="copy-btn" onclick="copy('step1')">Copy</button></pre>
-
-    <h3><span class="step-num">2</span>Add the repository</h3>
-    <pre><code id="step2">echo "deb [signed-by=/usr/share/keyrings/orcaslicer.gpg] REPO_URL stable main" | sudo tee /etc/apt/sources.list.d/orcaslicer.list</code><button class="copy-btn" onclick="copy('step2')">Copy</button></pre>
-
-    <div class="note">
-        <p>If the repository is not GPG-signed yet, use <code>[trusted=yes]</code> instead of the <code>signed-by</code> option.</p>
+    <div class="hero">
+        <div class="logo">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+            </svg>
+        </div>
+        <h1>OrcaSlicer <span>APT Repo</span></h1>
+        <p>Unofficial .deb packages for Debian, Ubuntu &amp; Mint. Automatically built from official AppImage releases.</p>
+        <div class="badges">
+            <span class="badge"><span class="dot dot-green"></span> Auto-updated daily</span>
+            <span class="badge"><span class="dot dot-blue"></span> GPG signed</span>
+            <span class="badge"><span class="dot dot-orange"></span> amd64</span>
+        </div>
     </div>
 
-    <h3><span class="step-num">3</span>Install</h3>
-    <pre><code id="step3">sudo apt update && sudo apt install orcaslicer</code><button class="copy-btn" onclick="copy('step3')">Copy</button></pre>
+    <div class="quick-card">
+        <h2><span class="icon">&#9889;</span> Quick Install</h2>
+        <p>One command to add the repo and install OrcaSlicer:</p>
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-label">terminal</span>
+                <button class="copy-btn" onclick="copy(this, 'oneliner')">Copy</button>
+            </div>
+            <pre><code id="oneliner">wget -qO- REPO_URL/install.sh | sudo bash && sudo apt install orcaslicer</code></pre>
+        </div>
+    </div>
 
-    <h2>Usage</h2>
-    <p>After installation, launch from the terminal or your application menu:</p>
-    <pre><code>orca-slicer</code></pre>
-    <p>Files are installed to <code>/opt/OrcaSlicer/</code>. Updates arrive automatically via <code>apt update && apt upgrade</code>.</p>
+    <h2><span class="icon">&#128295;</span> Manual Setup</h2>
+    <div class="steps">
+        <div class="step">
+            <h3>Add the GPG signing key</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-label">terminal</span>
+                    <button class="copy-btn" onclick="copy(this, 'step1')">Copy</button>
+                </div>
+                <pre><code id="step1">wget -qO- REPO_URL/public.asc | sudo tee /etc/apt/keyrings/orca-slicer.asc >/dev/null</code></pre>
+            </div>
+        </div>
 
-    <h2>Uninstall</h2>
-    <pre><code id="uninstall">sudo apt remove orcaslicer
-sudo rm /etc/apt/sources.list.d/orcaslicer.list
-sudo rm /usr/share/keyrings/orcaslicer.gpg</code><button class="copy-btn" onclick="copy('uninstall')">Copy</button></pre>
+        <div class="step">
+            <h3>Add the repository source</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-label">terminal</span>
+                    <button class="copy-btn" onclick="copy(this, 'step2')">Copy</button>
+                </div>
+                <pre><code id="step2">echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/orca-slicer.asc] REPO_URL stable main" | sudo tee /etc/apt/sources.list.d/orca-slicer.list >/dev/null</code></pre>
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>Update &amp; install</h3>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-label">terminal</span>
+                    <button class="copy-btn" onclick="copy(this, 'step3')">Copy</button>
+                </div>
+                <pre><code id="step3">sudo apt update && sudo apt install orcaslicer</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <div>&#128161;</div>
+        <p>After installation, updates come through the standard <code>apt update && apt upgrade</code> flow.</p>
+    </div>
+
+    <h2><span class="icon">&#9654;</span> Usage</h2>
+    <p>Launch from terminal or your desktop application menu:</p>
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-label">terminal</span>
+        </div>
+        <pre><code>orca-slicer</code></pre>
+    </div>
+    <p>The application is installed to <code>/opt/OrcaSlicer/</code>.</p>
+
+    <h2><span class="icon">&#128465;</span> Uninstall</h2>
+    <div class="code-block">
+        <div class="code-header">
+            <span class="code-label">terminal</span>
+            <button class="copy-btn" onclick="copy(this, 'uninstall')">Copy</button>
+        </div>
+        <pre><code id="uninstall">sudo apt remove orcaslicer
+sudo rm /etc/apt/sources.list.d/orca-slicer.list
+sudo rm /etc/apt/keyrings/orca-slicer.asc</code></pre>
+    </div>
 
     <div class="footer">
         <p>
-            Packages are built automatically from
-            <a href="https://github.com/OrcaSlicer/OrcaSlicer/releases">official OrcaSlicer releases</a>.
-            Source: <a href="GITHUB_REPO_URL">GITHUB_REPO_URL</a>
+            Built automatically from
+            <a href="https://github.com/OrcaSlicer/OrcaSlicer/releases">official OrcaSlicer releases</a><br>
+            Source &amp; workflow: <a href="GITHUB_REPO_URL">GITHUB_REPO_URL</a>
         </p>
     </div>
 
 </div>
 <script>
-    // Replace REPO_URL placeholders with actual GitHub Pages URL
     const owner = location.hostname.split('.')[0];
     const repo = location.pathname.split('/').filter(Boolean)[0] || '';
     const repoUrl = location.origin + (repo ? '/' + repo : '');
@@ -158,12 +444,15 @@ sudo rm /usr/share/keyrings/orcaslicer.gpg</code><button class="copy-btn" onclic
         .replaceAll('REPO_URL', repoUrl)
         .replaceAll('GITHUB_REPO_URL', githubRepoUrl);
 
-    function copy(id) {
+    function copy(btn, id) {
         const text = document.getElementById(id).textContent;
         navigator.clipboard.writeText(text);
-        const btn = document.getElementById(id).parentElement.querySelector('.copy-btn');
         btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 2000);
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+        }, 2000);
     }
 </script>
 </body>

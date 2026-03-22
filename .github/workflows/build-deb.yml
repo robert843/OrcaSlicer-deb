@@ -201,6 +201,13 @@ jobs:
     runs-on: ubuntu-24.04
     needs: check-and-build
     if: needs.check-and-build.outputs.new_release == 'true'
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -209,105 +216,92 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y dpkg-dev
 
       - name: Import GPG key
-        env:
-          GPG_KEY: ${{ secrets.PRIVATE_KEY }}
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Confirm GPG key loaded
         run: |
-          if [ -n "$GPG_KEY" ]; then
-            echo "$GPG_KEY" | gpg --batch --import
-            GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format long | grep sec | head -1 | awk '{print $2}' | cut -d/ -f2)
-            echo "gpg_key_id=${GPG_KEY_ID}" >> "$GITHUB_ENV"
-            echo "gpg_available=true" >> "$GITHUB_ENV"
-            echo "GPG key imported: ${GPG_KEY_ID}"
-          else
-            echo "No PRIVATE_KEY secret found, repository will not be signed."
-            echo "gpg_available=false" >> "$GITHUB_ENV"
-          fi
+          gpg --list-keys
+          echo "Fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}"
 
       - name: Download all .deb releases
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p apt-repo/pool
+          mkdir -p _site/pool/main
           gh release list --repo "${{ github.repository }}" --limit 100 --json tagName -q '.[].tagName' | while read -r tag; do
             gh release download "$tag" \
               --repo "${{ github.repository }}" \
               --pattern "*.deb" \
-              --dir apt-repo/pool \
+              --dir _site/pool/main \
               --skip-existing || true
           done
           echo "Downloaded .deb files:"
-          ls -lh apt-repo/pool/
+          ls -lh _site/pool/main/
 
       - name: Generate APT repository metadata
         run: |
-          cd apt-repo
-
+          cd _site
           mkdir -p dists/stable/main/binary-amd64
 
-          # Generate Packages file
-          dpkg-scanpackages --multiversion pool /dev/null > dists/stable/main/binary-amd64/Packages
-          gzip -9c dists/stable/main/binary-amd64/Packages > dists/stable/main/binary-amd64/Packages.gz
+          # Packages
+          dpkg-scanpackages --arch amd64 pool/ > dists/stable/main/binary-amd64/Packages
+          gzip -9 > dists/stable/main/binary-amd64/Packages.gz < dists/stable/main/binary-amd64/Packages
+          bzip2 -9 > dists/stable/main/binary-amd64/Packages.bz2 < dists/stable/main/binary-amd64/Packages
 
-          # Generate Release file
+          # Release
           cd dists/stable
-          cat > Release << 'EOFRELEASE'
-          Origin: OrcaSlicer-deb
-          Label: OrcaSlicer
-          Suite: stable
-          Codename: stable
-          Architectures: amd64
-          Components: main
-          Description: OrcaSlicer .deb packages - automatically built from official AppImage releases
-          EOFRELEASE
-          sed -i 's/^          //' Release
-
-          # Add checksums
+          {
+            echo "Origin: ${{ steps.import_gpg.outputs.name }}"
+            echo "Label: ${{ github.repository_owner }}"
+            echo "Suite: stable"
+            echo "Codename: stable"
+            echo "Version: 1.0"
+            echo "Architectures: amd64"
+            echo "Components: main"
+            echo "Description: OrcaSlicer .deb packages - automatically built from official AppImage releases"
+            echo "Date: $(date -Ru)"
+          } > Release
           apt-ftparchive release . >> Release
 
       - name: Sign repository
-        if: env.gpg_available == 'true'
         run: |
-          cd apt-repo/dists/stable
-
-          # Detached signature
-          gpg --batch --yes --default-key "${{ env.gpg_key_id }}" \
-            -abs -o Release.gpg Release
-
-          # Inline signature
-          gpg --batch --yes --default-key "${{ env.gpg_key_id }}" \
-            --clearsign -o InRelease Release
-
-          # Export public key
-          gpg --armor --export "${{ env.gpg_key_id }}" > ../../KEY.gpg
+          export GPG_FINGERPRINT="${{ steps.import_gpg.outputs.fingerprint }}"
+          cd _site/dists/stable
+          gpg --detach-sign --armor --sign > Release.gpg < Release
+          gpg --detach-sign --armor --sign --clearsign > InRelease < Release
 
       - name: Prepare GitHub Pages content
         run: |
-          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          # Public GPG key
+          cp public.asc _site/public.asc
+
+          # Landing page with instructions
+          cp pages/index.html _site/index.html
 
           # Install script
-          cat > apt-repo/install.sh << EOFINSTALL
+          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          cat > _site/install.sh << EOFINSTALL
           #!/bin/bash
           set -e
           echo "Adding OrcaSlicer APT repository..."
-          if curl -fsSL "${REPO_URL}/KEY.gpg" -o /dev/null 2>&1; then
-              curl -fsSL "${REPO_URL}/KEY.gpg" | sudo gpg --dearmor -o /usr/share/keyrings/orcaslicer.gpg
-              echo "deb [signed-by=/usr/share/keyrings/orcaslicer.gpg] ${REPO_URL} stable main" | sudo tee /etc/apt/sources.list.d/orcaslicer.list
-          else
-              echo "deb [trusted=yes] ${REPO_URL} stable main" | sudo tee /etc/apt/sources.list.d/orcaslicer.list
-          fi
+          wget -qO- "${REPO_URL}/public.asc" | sudo tee /etc/apt/keyrings/orca-slicer.asc >/dev/null
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/orca-slicer.asc] ${REPO_URL} stable main" | sudo tee /etc/apt/sources.list.d/orca-slicer.list >/dev/null
           sudo apt-get update
           echo ""
           echo "Done! Now install with: sudo apt install orcaslicer"
           EOFINSTALL
-          sed -i 's/^          //' apt-repo/install.sh
-          chmod 755 apt-repo/install.sh
+          sed -i 's/^          //' _site/install.sh
+          chmod 755 _site/install.sh
 
-          # Landing page with instructions
-          cp pages/index.html apt-repo/index.html
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./apt-repo
-          force_orphan: true
+        id: deployment
+        uses: actions/deploy-pages@v4
